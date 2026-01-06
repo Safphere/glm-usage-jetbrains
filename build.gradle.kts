@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.safphere"
-version = "0.1.6"
+version = "0.1.9"
 
 repositories {
     mavenCentral()
@@ -19,10 +19,12 @@ dependencies {
 
 // Configure Gradle IntelliJ Plugin
 intellij {
-    version.set("2023.2.5")
-    type.set("IC") // Target IDE Platform
-    
+    version.set("2024.2.5")
+    // 不设置 type，兼容所有 JetBrains IDE
     plugins.set(listOf(/* Plugin Dependencies */))
+
+    // 禁用自动更新 since/until build
+    updateSinceUntilBuild.set(false)
 }
 
 tasks {
@@ -36,18 +38,13 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("213")
-        untilBuild.set("262.*")
-    }
-
-    signPlugin {
-        certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
-        privateKey.set(System.getenv("PRIVATE_KEY"))
-        password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
+        sinceBuild.set("191")
     }
 
     publishPlugin {
-        token.set(System.getenv("PUBLISH_TOKEN"))
+        token.set(providers.gradleProperty("publishToken").orElse(System.getenv("PUBLISH_TOKEN")))
+        // 不签名直接发布
+        channels.set(listOf("default"))
     }
 
     test {

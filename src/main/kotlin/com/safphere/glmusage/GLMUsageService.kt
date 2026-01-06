@@ -104,7 +104,7 @@ object GLMUsageService {
             val platform = if (baseUrl.contains("z.ai")) "Z.AI" else "智谱AI"
 
             // Construct domain from baseUrl (remove /api/anthropic suffix)
-            val base = java.net.URL(baseUrl)
+            val base = java.net.URI(baseUrl).toURL()
             val domain = "${base.protocol}://${base.host}"
 
             LOG.info("Fetching data from $domain")
@@ -163,6 +163,7 @@ object GLMUsageService {
         )
     }
     
+    @Suppress("DEPRECATION")
     private fun request(urlString: String, apiKey: String): JsonObject {
         val settings = GLMSettingsState.instance
         val url = URL(urlString)
