@@ -1,0 +1,49 @@
+<idea-plugin url="https://github.com/safphere/glm-usage-jetbrains">
+    <id>com.safphere.glmusage</id>
+    <name>GLM/智谱 AI 实时用量监控</name>
+    <version>0.1.6</version>
+    <vendor email="a976466014@gmail.com" url="https://github.com/Safphere">Safphere</vendor>
+
+    <description><![CDATA[
+    为 JetBrains IDE 提供 GLM/智谱 AI API 实时用量监控。<br>
+    在状态栏实时显示 API 统计数据、MCP/Token 配额预警，以及 24 小时调用趋势图表。
+    <br><br>
+    <b>主要功能：</b>
+    <ul>
+      <li>实时显示 Token 使用量和 API 调用次数</li>
+      <li>MCP 额度（月度）和 Token 限流（5小时）配额预警</li>
+      <li>24 小时调用趋势图表（Sparkline）</li>
+      <li>悬停查看详细数据面板</li>
+      <li>点击刷新、快捷键支持（Ctrl+Shift+G）</li>
+    </ul>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <statusBarWidgetFactory implementation="com.safphere.glmusage.GLMStatusBarWidgetFactory"/>
+        <applicationConfigurable parentId="tools" instance="com.safphere.glmusage.GLMSettingsConfigurable"
+                                 id="com.safphere.glmusage.GLMSettingsConfigurable"
+                                 displayName="GLM/智谱 AI 用量监控"/>
+        <applicationService serviceImplementation="com.safphere.glmusage.GLMSettingsState"/>
+    </extensions>
+
+    <actions>
+        <action id="GLM.Refresh" class="com.safphere.glmusage.GLMRefreshAction"
+                text="刷新 GLM/智谱 AI 数据"
+                description="刷新 GLM/智谱 AI 用量数据">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="GLM.Configure" class="com.safphere.glmusage.GLMConfigureAction"
+                text="配置 GLM/智谱 AI Token"
+                description="配置 GLM/智谱 AI API Token">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="GLM.ShowUsage" class="com.safphere.glmusage.GLMShowUsageAction"
+                text="查看 GLM/智谱 AI 用量"
+                description="显示 GLM/智谱 AI API 用量信息">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="control shift G"/>
+        </action>
+    </actions>
+</idea-plugin>
