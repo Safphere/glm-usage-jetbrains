@@ -1,27 +1,11 @@
 <idea-plugin url="https://github.com/safphere/glm-usage-jetbrains">
     <id>com.safphere.glmusage</id>
-    <name>GLM/Zhipu AI Usage Monitor</name>
-    <version>0.1.9</version>
-    <vendor email="a976466014@gmail.com" url="https://github.com/Safphere" logo="icons/icon.png">Safphere</vendor>
-
-    <idea-version since-build="191"/>
+    <name>GLM/智谱 AI 实时用量监控</name>
+    <version>0.1.12</version>
+    <vendor email="a976466014@gmail.com" url="https://github.com/Safphere">Safphere</vendor>
 
     <description><![CDATA[
-    Real-time usage monitoring for GLM/Zhipu AI API in JetBrains IDEs.<br>
-    Displays API statistics, MCP/Token quota alerts, and 24-hour usage trend charts in the status bar.
-    <br><br>
-    <b>Key Features:</b>
-    <ul>
-      <li>Real-time display of Token usage and API call counts</li>
-      <li>MCP quota (monthly) and Token rate limit (5 hours) quota alerts</li>
-      <li>24-hour usage trend charts (Sparkline)</li>
-      <li>Hover to view detailed data panel</li>
-      <li>Click to refresh, keyboard shortcut support (Ctrl+Shift+G)</li>
-    </ul>
-    <br></br>
-    为 JetBrains IDE 提供 GLM/智谱 AI API 实时用量监控。<br>
-    在状态栏实时显示 API 统计数据、MCP/Token 配额预警，以及 24 小时调用趋势图表。
-    <br><br>
+    Real-time monitoring of GLM/Zhipu AI API usage for JetBrains IDEs. Displays API statistics, quota alerts, and 24h usage charts in the status bar.<br><br>
     <b>主要功能：</b>
     <ul>
       <li>实时显示 Token 使用量和 API 调用次数</li>
@@ -35,10 +19,11 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <statusBarWidgetFactory id="GLMUsageWidget" implementation="com.safphere.glmusage.GLMStatusBarWidgetFactory"/>
+        <statusBarWidgetFactory id="com.safphere.glmusage.GLMUsageWidget"
+                                implementation="com.safphere.glmusage.GLMStatusBarWidgetFactory"/>
         <applicationConfigurable parentId="tools" instance="com.safphere.glmusage.GLMSettingsConfigurable"
                                  id="com.safphere.glmusage.GLMSettingsConfigurable"
-                                 displayName="GLM/Zhipu AI Usage Monitor"/>
+                                 displayName="GLM/智谱 AI 用量监控"/>
         <applicationService serviceImplementation="com.safphere.glmusage.GLMSettingsState"/>
     </extensions>
 
@@ -61,4 +46,3 @@
         </action>
     </actions>
 </idea-plugin>
-

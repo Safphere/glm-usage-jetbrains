@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.safphere"
-version = "0.1.9"
+version = "0.1.12"
 
 repositories {
     mavenCentral()
@@ -19,31 +19,31 @@ dependencies {
 
 // Configure Gradle IntelliJ Plugin
 intellij {
-    version.set("2024.2.5")
-    // 不设置 type，兼容所有 JetBrains IDE
-    plugins.set(listOf(/* Plugin Dependencies */))
-
-    // 禁用自动更新 since/until build
-    updateSinceUntilBuild.set(false)
+    version.set("2023.2.5")
+    type.set("IC")
+    plugins.set(listOf())
 }
 
 tasks {
-    // Set the JVM compatibility versions
+    // Java 编译配置
     withType<JavaCompile> {
         sourceCompatibility = "17"
         targetCompatibility = "17"
     }
+
+    // Kotlin 编译配置
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         kotlinOptions.jvmTarget = "17"
     }
 
     patchPluginXml {
-        sinceBuild.set("191")
+        sinceBuild.set("213")
+        untilBuild.set("262.*")
     }
 
+    // 发布插件到 Marketplace
     publishPlugin {
-        token.set(providers.gradleProperty("publishToken").orElse(System.getenv("PUBLISH_TOKEN")))
-        // 不签名直接发布
+        token.set(System.getenv("PUBLISH_TOKEN") ?: "")
         channels.set(listOf("default"))
     }
 

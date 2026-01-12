@@ -4,63 +4,92 @@ import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Dimension
+import javax.swing.BoxLayout
 import javax.swing.JComponent
 import javax.swing.JEditorPane
 import javax.swing.JPanel
-import javax.swing.JScrollPane
-import javax.swing.ScrollPaneConstants
+import javax.swing.Box
+import javax.swing.event.HyperlinkEvent
 
 /**
- * GLM Usage 悬浮提示面板 - 使用HTML显示
- * 样式与glm-usage-vscode保持一致
+ * GLM Usage 悬浮提示面板 - 混合布局
+ * 样式与glm-usage-vscode保持一致 (Top Info + Custom Graph + Bottom Actions)
  */
 class GLMHoverTooltipPanel(private val usageData: GLMUsageData) : JPanel() {
 
     init {
-        layout = BorderLayout()
+        layout = BoxLayout(this, BoxLayout.Y_AXIS)
         background = JBColor.background()
-        border = JBUI.Borders.empty()
-        
-        val editorPane = createHtmlPane()
-        add(editorPane, BorderLayout.CENTER)
+        border = JBUI.Borders.empty(8) // VS Code padding: 8px
+
+        // 1. Top Content (Title, Stats, Quotas)
+        val topHtml = buildTopHtml(usageData)
+        add(createHtmlPane(topHtml))
+
+        // 2. Trend Graph (if history exists)
+        if (usageData.history.isNotEmpty()) {
+            add(Box.createVerticalStrut(3))
+            val graphHeader = "<div style='font-family: Consolas, Monaco, monospace; font-size: 11px; color: #8b949e; margin-bottom: 3px;'>调用趋势 (24H) &nbsp;&nbsp;&nbsp; ${getPeakInfo(usageData)}</div>"
+            add(createHtmlPane(graphHeader))
+
+            // Custom Graph Component
+            val graphPanel = GLMTrendGraphPanel(usageData.history)
+            graphPanel.alignmentX = JComponent.LEFT_ALIGNMENT
+            add(graphPanel)
+        }
+
+        // 3. Bottom Content (Actions)
+        add(Box.createVerticalStrut(1)) // Divider space
+        add(createHtmlPane(buildBottomHtml()))
     }
 
-    private fun createHtmlPane(): JComponent {
-        val htmlContent = buildTooltipHtml(usageData)
-        
+    private fun getPeakInfo(data: GLMUsageData): String {
+        val peak = data.history.maxByOrNull { it.calls } ?: return ""
+        val peakTime = if (peak.time.contains(" ")) peak.time.split(" ")[1] else peak.time
+        return "<span style='font-size:12px'>峰值: <b>${peak.calls}</b> ($peakTime)</span>"
+    }
+
+    private fun createHtmlPane(htmlContent: String): JEditorPane {
         val editorPane = JEditorPane("text/html", htmlContent).apply {
             isEditable = false
-            isOpaque = true
+            isOpaque = false // Transparent to let panel background show
             background = JBColor.background()
-            // Let the content determine the size - adaptive sizing
             putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
+            alignmentX = JComponent.LEFT_ALIGNMENT
         }
         
-        // Make links clickable if needed
+        // Fix for standard JEditorPane font rendering to match IDE
+        val font = com.intellij.util.ui.UIUtil.getLabelFont()
+        val bodyRule = "body { font-family: ${font.family}, sans-serif; font-size: ${font.size}pt; }"
+        (editorPane.editorKit as? javax.swing.text.html.HTMLEditorKit)?.styleSheet?.addRule(bodyRule)
+
         editorPane.addHyperlinkListener { event ->
-            if (event.eventType == javax.swing.event.HyperlinkEvent.EventType.ACTIVATED) {
-                // Handle link clicks if needed
+            if (event.eventType == HyperlinkEvent.EventType.ACTIVATED) {
+                // Actions handled by parent or links if needed.
+                // Commands are not directly executable here unless mapped.
+                // VS Code uses command: links. We can just print log or handle if we want real interactivity.
+                // Since this is a tooltip, interactivity is limited.
             }
         }
-        
         return editorPane
     }
 
-    private fun buildTooltipHtml(data: GLMUsageData): String {
+    private fun buildTopHtml(data: GLMUsageData): String {
         val dateStr = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.CHINA).format(java.util.Date(data.timestamp))
-        val mcpPercent = data.quotas.mcp.pct.toInt()
-        val t5hPercent = data.quotas.token5h.pct.toInt()
+        val mcpPercent = data.quotas.mcp.pct
+        val t5hPercent = data.quotas.token5h.pct
 
-        // Determine colors based on percentage (matching VSCode exactly)
-        val mcpColor = if (mcpPercent > 80) "#da3633" else "#58a6ff"
-        val t5hColor = if (t5hPercent > 80) "#da3633" else "#238636"
+        val mcpPercentInt = mcpPercent.toInt()
+        val t5hPercentInt = t5hPercent.toInt()
 
-        // Build HTML tooltip exactly like VSCode MarkdownString
+        val mcpColor = if (mcpPercentInt > 80) "#da3633" else "#58a6ff"
+        val t5hColor = if (t5hPercentInt > 80) "#da3633" else "#238636"
+
         return buildString {
-            append("<html><body>")
-            append("<div style='font-family: Consolas, Monaco, monospace; font-size: 12px; line-height: 1.4; padding: 8px;'>")
+            append("<html><head><style>body { margin: 0; padding: 0; }</style></head><body>")
+            append("<div style='line-height: 1.4;'>")
 
-            // Title - exactly like VSCode
+            // Title
             append("<div style='font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #e1e4e8;'>")
             append("GLM 数据看板 &nbsp;<span style='color: #8b949e; font-size: 12px; font-weight: normal;'>")
             append(data.platform)
@@ -72,9 +101,9 @@ class GLMHoverTooltipPanel(private val usageData: GLMUsageData) : JPanel() {
             append("</div>")
 
             // Divider
-            append("<hr style='border: none; border-top: 1px solid #30363d; margin: 8px 0;'>")
+            append("<hr style='border: none; border-top: 1px solid #30363d; margin: 1px 0;'>")
 
-            // Statistics table - exactly like VSCode
+            // Statistics table
             append("<table style='width: 100%; margin-bottom: 10px;'>")
             append("<tr>")
             append("<td style='color: #8b949e; font-size: 11px; padding-right: 20px;'>Token 总量</td>")
@@ -91,103 +120,69 @@ class GLMHoverTooltipPanel(private val usageData: GLMUsageData) : JPanel() {
             append("</table>")
 
             // Divider
-            append("<hr style='border: none; border-top: 1px solid #30363d; margin: 8px 0;'>")
+            append("<hr style='border: none; border-top: 1px solid #30363d; margin: 1px 0;'>")
 
             // Quotas
             append("<div style='color: #8b949e; font-size: 11px; margin-bottom: 5px;'>配额状态</div>")
 
-            // MCP Quota - exactly like VSCode
+            // MCP Quota
             append("<div style='margin-bottom: 8px;'>")
             append("<div style='color: #e1e4e8; font-size: 12px; margin-bottom: 2px;'>")
             append("MCP 额度 (月) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style='color: $mcpColor; font-weight: bold;'>")
-            append("${mcpPercent}%")
+            append(String.format("%.2f%%", mcpPercent))
             append("</span></div>")
 
-            val mcpFilled = (mcpPercent * 15 / 100).coerceIn(0, 15)
+            val mcpFilled = (mcpPercentInt * 15 / 100).coerceIn(0, 15)
             val mcpBarFilled = "█".repeat(mcpFilled)
             val mcpBarEmpty = "░".repeat(15 - mcpFilled)
             append("<div style='font-family: Consolas, Monaco, monospace; font-size: 11px;'>")
-            append("<span style='color: $mcpColor;'>")
-            append(mcpBarFilled)
-            append("</span>")
-            append("<span style='color: #484f58;'>")
-            append(mcpBarEmpty)
-            append("</span>")
+            append("<span style='color: $mcpColor;'>$mcpBarFilled</span>")
+            append("<span style='color: #484f58;'>$mcpBarEmpty</span>")
             append(" &nbsp; ${data.quotas.mcp.used.toInt()}/${data.quotas.mcp.total.toInt()}")
             append("</div></div>")
 
-            // Token 5h Quota - exactly like VSCode
+            // Token 5h Quota
             append("<div style='margin-bottom: 8px;'>")
             append("<div style='color: #e1e4e8; font-size: 12px; margin-bottom: 2px;'>")
             append("Token 限流 (5小时) &nbsp;<span style='color: $t5hColor; font-weight: bold;'>")
-            append("${t5hPercent}%")
+            append(String.format("%.2f%%", t5hPercent))
             append("</span></div>")
 
-            val t5hFilled = (t5hPercent * 15 / 100).coerceIn(0, 15)
+            val t5hFilled = (t5hPercentInt * 15 / 100).coerceIn(0, 15)
             val t5hBarFilled = "█".repeat(t5hFilled)
             val t5hBarEmpty = "░".repeat(15 - t5hFilled)
             append("<div style='font-family: Consolas, Monaco, monospace; font-size: 11px;'>")
-            append("<span style='color: $t5hColor;'>")
-            append(t5hBarFilled)
-            append("</span>")
-            append("<span style='color: #484f58;'>")
-            append(t5hBarEmpty)
-            append("</span>")
+            append("<span style='color: $t5hColor;'>$t5hBarFilled</span>")
+            append("<span style='color: #484f58;'>$t5hBarEmpty</span>")
+            append(" &nbsp; ${formatTokens(data.quotas.token5h.used.toLong())}/${formatTokens(data.quotas.token5h.total.toLong())}")
             append("</div></div>")
 
-            // Divider
-            append("<hr style='border: none; border-top: 1px solid #30363d; margin: 8px 0;'>")
-
-            // Traffic trend (sparkline) - exactly like VSCode
-            if (data.history.isNotEmpty()) {
-                append("<div style='color: #8b949e; font-size: 11px; margin-bottom: 5px;'>调用趋势 (24H)</div>")
-
-                val calls = data.history.map { it.calls }
-                val max = calls.maxOrNull()?.coerceAtLeast(1) ?: 1
-                val bars = listOf(" ", "▂", "▃", "▄", "▅", "▆", "▇", "█")
-
-                val sparkline = buildString {
-                    data.history.forEach { pt ->
-                        if (pt.calls == 0) {
-                            append("<span style='color: #30363d;'>_</span>")
-                        } else {
-                            val idx = ((pt.calls.toDouble() / max) * (bars.size - 1)).toInt().coerceIn(0, bars.size - 1)
-                            append("<span style='color: #58a6ff;'>")
-                            append(bars[idx])
-                            append("</span>")
-                        }
-                    }
-                }
-
-                append("<div style='font-family: Consolas, Monaco, monospace; font-size: 11px; margin-bottom: 5px;'>")
-                append(sparkline)
-                append("</div>")
-
-                // Peak info
-                val peak = data.history.maxByOrNull { it.calls }
-                if (peak != null) {
-                    val peakTime = if (peak.time.contains(" ")) peak.time.split(" ")[1] else peak.time
-                    append("<div style='color: #8b949e; font-size: 11px;'>")
-                    append("峰值: <span style='color: #e1e4e8; font-weight: bold;'>")
-                    append("${peak.calls}")
-                    append("</span> 次 ($peakTime)")
-                    append("</div>")
-                }
-            }
-
-            // Divider
-            append("<hr style='border: none; border-top: 1px solid #30363d; margin: 8px 0;'>")
-
-            // Actions
-            append("<div style='color: #8b949e; font-size: 11px;'>")
-            append("点击刷新数据 | 设置配置 Token")
-            append("</div>")
+            // Divider before Graph
+            append("<hr style='border: none; border-top: 1px solid #30363d; margin: 1px 0;'>")
 
             append("</div></body></html>")
+        }
+    }
+
+    private fun buildBottomHtml(): String {
+        return buildString {
+            append("<html><head><style>body { margin: 0; padding: 0; }</style></head><body>")
+            append("<hr style='border: none; border-top: 1px solid #30363d; margin: 1px 0 4px 0;'>")
+            append("<div style='color: #8b949e; font-size: 11px; font-family: Consolas, Monaco, monospace;'>")
+            append("点击刷新数据 | 设置配置 Token")
+            append("</div>")
+            append("</body></html>")
         }
     }
 
     private fun formatNumber(num: Long): String {
         return num.toString().replace(Regex("(?<=\\d)(?=(\\d{3})+$)"), ",")
     }
+
+    private fun formatTokens(num: Long): String {
+        return if (num >= 1000000) String.format("%.2fM", num / 1000000.0)
+        else if (num >= 1000) String.format("%.1fK", num / 1000.0)
+        else num.toString()
+    }
 }
+

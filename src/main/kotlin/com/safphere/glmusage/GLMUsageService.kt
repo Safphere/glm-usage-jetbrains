@@ -104,7 +104,7 @@ object GLMUsageService {
             val platform = if (baseUrl.contains("z.ai")) "Z.AI" else "智谱AI"
 
             // Construct domain from baseUrl (remove /api/anthropic suffix)
-            val base = java.net.URI(baseUrl).toURL()
+            val base = java.net.URL(baseUrl)
             val domain = "${base.protocol}://${base.host}"
 
             LOG.info("Fetching data from $domain")
@@ -163,7 +163,6 @@ object GLMUsageService {
         )
     }
     
-    @Suppress("DEPRECATION")
     private fun request(urlString: String, apiKey: String): JsonObject {
         val settings = GLMSettingsState.instance
         val url = URL(urlString)
@@ -239,11 +238,6 @@ object GLMUsageService {
                 val times = mData.getAsJsonArray("x_time")
                 val calls = if (mData.has("modelCallCount")) mData.getAsJsonArray("modelCallCount") else null
 
-                LOG.info("History times count: ${times.size()}")
-                if (calls != null) {
-                    LOG.info("History calls count: ${calls.size()}")
-                }
-
                 for (i in 0 until times.size()) {
                     try {
                         val tStr = times[i].asString // "2024-01-01 10:00:00"
@@ -275,36 +269,37 @@ object GLMUsageService {
 
             if (qData.has("limits")) {
                 val limits = qData.getAsJsonArray("limits")
-                LOG.info("Quota limits count: ${limits.size()}")
-
                 for (elem in limits) {
                     try {
                         val obj = elem.asJsonObject
-                        if (!obj.has("type")) {
-                            LOG.warn("Limit object missing 'type' field: $obj")
-                            continue
-                        }
+                        if (!obj.has("type")) continue
 
                         val type = obj.get("type").asString
                         if (type == "TIME_LIMIT") {
+                            // VSCode: const pct = l.usage > 0 ? (l.currentValue / l.usage) * 100 : 0;
+                            // quotas.mcp = { used: l.currentValue, total: l.usage, pct: pct.toFixed(2) };
                             val used = if (obj.has("currentValue")) obj.get("currentValue").asDouble else 0.0
                             val total = if (obj.has("usage")) obj.get("usage").asDouble else 4000.0
-                            // VSCode: Math.round(l.percentage * 100)
-                            val pct = if (obj.has("percentage")) (obj.get("percentage").asDouble * 100) else 0.0
-                            mcp = QuotaItem(used, total, Math.round(pct).toDouble())
-                            LOG.info("MCP quota - used: $used, total: $total, pct: ${Math.round(pct)}")
-                        } else if (type == "TOKENS_LIMIT") {
-                            // VSCode: parseFloat(l.percentage || 0) - No multiplication!
-                            val pct = if (obj.has("percentage")) obj.get("percentage").asDouble else 0.0
-                            t5h = QuotaItem(0.0, 0.0, pct)
-                            LOG.info("Token quota - pct: $pct")
+                            val pct = if (total > 0) (used / total) * 100.0 else 0.0
+                            
+                            // Format to 2 decimal places like toFixed(2)
+                            val formattedPct = String.format("%.2f", pct).toDouble()
+                            mcp = QuotaItem(used, total, formattedPct)
+                        } 
+                        else if (type == "TOKENS_LIMIT") {
+                            // VSCode: const pct = l.usage > 0 ? (l.currentValue / l.usage) * 100 : 0;
+                            // quotas.token5h = { used: l.currentValue, total: l.usage, pct: pct.toFixed(2) };
+                            val used = if (obj.has("currentValue")) obj.get("currentValue").asDouble else 0.0
+                            val total = if (obj.has("usage")) obj.get("usage").asDouble else 100.0 // Default ?
+                            val pct = if (total > 0) (used / total) * 100.0 else 0.0
+
+                            val formattedPct = String.format("%.2f", pct).toDouble()
+                            t5h = QuotaItem(used, total, formattedPct)
                         }
                     } catch (e: Exception) {
                         LOG.warn("Error processing quota limit: ${e.message}")
                     }
                 }
-            } else {
-                LOG.warn("No limits array found in quota data")
             }
 
             val result = GLMUsageData(
