@@ -1,11 +1,22 @@
 <idea-plugin url="https://github.com/safphere/glm-usage-jetbrains">
     <id>com.safphere.glmusage</id>
-    <name>GLM/智谱 AI 实时用量监控</name>
-    <version>0.1.12</version>
+    <name>GLM AI Usage Monitor</name>
+    <version>0.1.13</version>
     <vendor email="a976466014@gmail.com" url="https://github.com/Safphere">Safphere</vendor>
 
     <description><![CDATA[
     Real-time monitoring of GLM/Zhipu AI API usage for JetBrains IDEs. Displays API statistics, quota alerts, and 24h usage charts in the status bar.<br><br>
+    <b>Key Features:</b>
+    <ul>
+      <li>Real-time Token usage and API call statistics display</li>
+      <li>MCP quota (monthly) and Token rate limit (5h) alerts</li>
+      <li>24-hour trend chart with Sparkline visualization</li>
+      <li>Hover to view detailed data panel</li>
+      <li>Quick refresh and keyboard shortcut support (Ctrl+Shift+G)</li>
+    </ul>
+    <hr>
+    <b>中文介绍：</b><br><br>
+    用于 JetBrains IDE 的 GLM/智谱 AI API 实时用量监控插件。在状态栏显示 API 统计、配额预警和 24 小时使用量图表。<br><br>
     <b>主要功能：</b>
     <ul>
       <li>实时显示 Token 使用量和 API 调用次数</li>
